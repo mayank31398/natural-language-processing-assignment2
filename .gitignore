@@ -1,0 +1,7 @@
+.vscode
+*.pdf
+Data
+__pycache__
+.env
+Models
+*.pt
