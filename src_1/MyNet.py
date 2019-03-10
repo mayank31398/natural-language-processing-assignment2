@@ -9,19 +9,19 @@ import params
 
 
 class MyNet(nn.Module):
-    def __init__(self, num_embeddings, embedding_dim):
+    def __init__(self, num_embeddings, embedding_dim, padding_idx=1):
         super().__init__()
 
         self.embeddings = nn.Embedding(
-            num_embeddings, embedding_dim, padding_idx=0)  # 8, 300
+            num_embeddings, embedding_dim, padding_idx=padding_idx)  # 8, 300
 
-        # # Embeddings = ET + delta
-        # self.T = nn.Linear(embedding_dim, embedding_dim, bias=False)
-        # self.delta = nn.Embedding(
-        #     num_embeddings, embedding_dim, padding_idx=0)  # 8, 300
+        # Embeddings = ET + delta
+        self.T = nn.Linear(embedding_dim, embedding_dim, bias=False)
+        self.delta = nn.Embedding(
+            num_embeddings, embedding_dim, padding_idx=padding_idx)  # 8, 300
 
-        self.T = nn.Sequential(
-            nn.Linear(embedding_dim, embedding_dim), nn.SELU())
+        # self.T = nn.Sequential(
+        #     nn.Linear(embedding_dim, embedding_dim), nn.SELU())
 
         # 1, 2400
         self.c = nn.Sequential(
@@ -52,14 +52,14 @@ class MyNet(nn.Module):
             nn.Linear(4, 1), nn.Sigmoid()  # 1
         )
 
-    def GetEmbeddings(self, x):
-        return self.T(self.embeddings(x))
-
     # def GetEmbeddings(self, x):
-    #     E = self.T(self.embeddings(x))
-    #     E = E + self.delta(x)
+    #     return self.T(self.embeddings(x))
 
-    #     return E
+    def GetEmbeddings(self, x):
+        E = self.T(self.embeddings(x))
+        E = E + self.delta(x)
+
+        return E
 
     def forward(self, x, y):
         c = self.GetEmbeddings(x)
@@ -67,6 +67,20 @@ class MyNet(nn.Module):
 
         w = self.GetEmbeddings(y)
         w = w.view(x.shape[0], 1, -1)
+
+        c = self.c(c)
+        w = self.w(w)
+
+        cw = th.cat([c, w], dim=1)
+        cw = cw.view(x.shape[0], -1)
+
+        out = self.l(cw)
+
+        return out
+
+    def Evaluate(self, x, y):
+        c = x.view(x.shape[0], 1, -1)
+        w = y.view(x.shape[0], 1, -1)
 
         c = self.c(c)
         w = self.w(w)
@@ -93,7 +107,7 @@ class MyNet(nn.Module):
         xavier = np.sqrt(6 / embedding_dim)
         weights = np.random.uniform(-xavier, xavier,
                                     size=(num_embeddings, embedding_dim))
-        weights[0, :] = 0
+        weights[self.embeddings.padding_idx, :] = 0
 
         for word in word_index:
             if(word in word2vec.wv.vocab.keys()):
@@ -118,6 +132,11 @@ def train(model: MyNet, data_loader, optimizer):
 
         data_x = data_x.cuda()
         data_y = data_y.cuda()
+
+        # Drop some words
+        probabilities = th.ones(data_x.shape) * 0.9
+        probabilities = th.bernoulli(probabilities).cuda().type(th.long)
+        data_x = data_x * probabilities
 
         out_true = model(data_x, data_y)
 
@@ -193,14 +212,14 @@ def Evaluate(model: MyNet, data_loader):
     for data_x, data_y in data_loader:
         data_x = data_x.cuda()
         data_y = data_y.cuda()
-        
-        out = model(data_x, data_y)
+
+        out = model.Evaluate(data_x, data_y)
         out = out.detach().cpu().numpy()
         results.append(out)
-    
+
     results = np.concatenate(results, axis=0)
     results = np.squeeze(results)
-    
+
     return results
 
 

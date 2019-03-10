@@ -115,20 +115,16 @@ def PrintWord2Vec_dict(word2vec):
             word2vec[word])), str(word.encode("UTF-8")))
 
 
-def BuildWord2Index(words1, words2):
+def BuildWord2Index(words):
     word_index = {}
-    index = 1
 
-    for word in words2:
+    word_index["<<unk>>"] = 0
+    word_index["<<pad>>"] = 1
+
+    index = 2
+    for word in words:
         word_index[word] = index
         index += 1
-
-    for word in words1:
-        if(word not in word_index):
-            word_index[word] = index
-            index += 1
-
-    word_index["<<pad>>"] = 0
 
     return word_index
 
@@ -152,7 +148,7 @@ def GetDataLoader(data, word_index):
         for sentence in data:
             # Pad each sentence
             sentence = Pad(sentence)
-            
+
             # Convert to indices
             sentence = Word2Index(sentence, word_index)
 
@@ -163,7 +159,6 @@ def GetDataLoader(data, word_index):
 
                 dataset_x.append(data_)
                 dataset_y.append(sentence[i + CONTEXT])
-
 
         return dataset_x, dataset_y
 
@@ -195,59 +190,3 @@ def GetDataLoader(data, word_index):
     test_loader = MakeDataLoader(dataset_x_test, dataset_y_test)
 
     return train_loader, test_loader
-
-
-# # This dataloader joins the entire corpus (sentences are joined)
-# def GetDataLoader(data, word_index):
-#     def Flatten(data):
-#         data_ = []
-#         for i in data:
-#             data_ += i
-#         return data_
-
-#     def Get_XY_pairs(data):
-#         dataset_x = []
-#         dataset_y = []
-#         for i in range(len(data) - 2 * CONTEXT - 1):
-#             data_ = []
-#             data_ += data[i: i + CONTEXT]
-#             data_ += data[i + CONTEXT + 1: i + 2 * CONTEXT + 1]
-
-#             dataset_x.append(data_)
-#             dataset_y.append(data[i + CONTEXT])
-
-#         return dataset_x, dataset_y
-
-#     def MakeDataLoader(dataset_x, dataset_y):
-#         dataset_x = np.array(dataset_x).astype(np.long)
-#         dataset_y = np.array(dataset_y).astype(np.long)
-#         dataset_y = np.expand_dims(dataset_y, axis=1)
-
-#         dataset = TensorDataset(
-#             th.tensor(dataset_x).type(th.LongTensor),
-#             th.tensor(dataset_y).type(th.LongTensor)
-#         )
-
-#         data_loader = DataLoader(
-#             dataset,
-#             shuffle=True,
-#             batch_size=BATCH_SIZE,
-#             drop_last=False
-#         )
-
-#         return data_loader
-
-#     # To flatten the data list
-#     data = Flatten(data)
-
-#     # Convert strings to indexes
-#     data = Word2Index(data, word_index)
-
-#     dataset_x, dataset_y = Get_XY_pairs(data)
-#     dataset_x_train, dataset_x_test, dataset_y_train, dataset_y_test = train_test_split(
-#         dataset_x, dataset_y, random_state=RANDOM_SEED, test_size=TEST_SIZE)
-
-#     train_loader = MakeDataLoader(dataset_x_train, dataset_y_train)
-#     test_loader = MakeDataLoader(dataset_x_test, dataset_y_test)
-
-#     return train_loader, test_loader

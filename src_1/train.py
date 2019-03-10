@@ -33,13 +33,12 @@ def main():
     #     "Data", "GoogleNews-vectors-negative300.bin"), data)
 
     # Get word_index dictionary
-    word_index = BuildWord2Index(
-        word_frequency.keys(), word2vec.wv.vocab.keys())
+    word_index = BuildWord2Index(word_frequency.keys())
 
     train_loader, test_loader = GetDataLoader(data, word_index)
 
     # Set up the model
-    model = MyNet(len(word_index), EMBEDDING_DIM)
+    model = MyNet(len(word_index), EMBEDDING_DIM, padding_idx=1)
 
     optimizer = th.optim.Adamax(
         model.GetTrainableParameters(), lr=LEARNING_RATE)
