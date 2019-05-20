@@ -1,4 +1,4 @@
-# Domain transfer of word embeddings
+# Natural language processing assignment 2
 ## COL772
 ### Indian Institute of Technology Delhi
 
